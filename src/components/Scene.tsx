@@ -1,5 +1,5 @@
 import { useEffect, useRef, useMemo, useState } from 'react'
-import { useFrame } from '@react-three/fiber'
+import { useFrame, useThree } from '@react-three/fiber'
 import { useScroll, Float, Html, Stars } from '@react-three/drei'
 import * as THREE from 'three'
 import Mountain, {
@@ -11,31 +11,9 @@ import Mountain, {
   generateTrailCurve,
   getTerrainHeight,
 } from './Mountain'
-import { FiGithub, FiLinkedin, FiMail } from 'react-icons/fi'
 import { createSoftShadowTexture, createToyMatcapTexture } from '../utils/toyTextures'
 import { onTerrainSurfaceChange, sampleTerrainSurface } from '../utils/terrainSnap'
-
-/* ═══════════════════════════════════════
-   DATA
-   ═══════════════════════════════════════ */
-const skills = [
-  { cat: 'Frontend', items: ['React', 'TypeScript', 'Next.js', 'Vite', 'Tailwind'] },
-  { cat: 'Backend', items: ['Python', 'Node.js', 'PostgreSQL'] },
-  { cat: 'AI & DevOps', items: ['TensorFlow', 'Docker', 'Git'] },
-]
-
-const projects = [
-  { emoji: '🚀', title: 'Zarnite', desc: 'Full-stack SaaS platform with Stripe integration and real-time telemetry dashboards.', tags: ['React', 'TypeScript', 'Tailwind', 'Stripe'] },
-  { emoji: '🧠', title: 'Epilepsy Detection UI', desc: 'AI-powered interface for epilepsy diagnosis through EEG data visualization.', tags: ['React', 'Python', 'TensorFlow'] },
-  { emoji: '🌍', title: 'AI Tourism Assistant', desc: 'Accessible tourism platform using AI wearables for real-time navigation.', tags: ['Python', 'React', 'Edge AI'] },
-  { emoji: '📊', title: 'Developer Dashboard', desc: 'Real-time analytics dashboard with WebSocket connections.', tags: ['React', 'TypeScript', 'Node.js'] },
-]
-
-const hackathons = [
-  { name: 'VTHacks 12', year: '2025', project: 'AI Health Monitor', award: '🏆 Winner' },
-  { name: 'HackViolet', year: '2025', project: 'AccessPath', award: '🥈 Top 3' },
-  { name: 'Capital One', year: '2024', project: 'FinSight', award: '⭐ Sponsor Prize' },
-]
+import { activeZoneStore } from '../utils/activeZoneStore'
 
 /* ═══════════════════════════════════════
    TRAIL — generated from terrain heightmap
@@ -66,11 +44,11 @@ function CameraRig() {
   const smoothedScroll = useRef(0)
   const tempTangent = useMemo(() => new THREE.Vector3(), [])
   const cameraOffset = useMemo(() => new THREE.Vector3(), [])
-  const outward = useMemo(() => new THREE.Vector3(), [])
-  const targetCamPos = useMemo(() => new THREE.Vector3(), [])
-  const targetLookAt = useMemo(() => new THREE.Vector3(), [])
-  const upOffset = useMemo(() => new THREE.Vector3(0, 5, 0), [])
-  const lookAtUpOffset = useMemo(() => new THREE.Vector3(0, 1.5, 0), [])
+    const outward = useMemo(() => new THREE.Vector3(), [])
+    const targetCamPos = useMemo(() => new THREE.Vector3(), [])
+    const targetLookAt = useMemo(() => new THREE.Vector3(), [])
+    const upOffset = useMemo(() => new THREE.Vector3(0, 5, 0), [])
+    const lookAtUpOffset = useMemo(() => new THREE.Vector3(0, 0.2, 0), [])
   const tempLookTangent = useMemo(() => new THREE.Vector3(), [])
 
   useFrame(({ camera }, delta) => {
@@ -151,181 +129,120 @@ function HikerOnTrail() {
   )
 }
 
-/* ═══════════════════════════════════════
-   ZONE CONTENT COMPONENTS
-   ═══════════════════════════════════════ */
-function ZonePanel({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="zone-panel visible">
-      {children}
-    </div>
-  )
-}
-
-function BaseCampContent() {
-  return (
-    <ZonePanel>
-      <h3>Welcome, Traveler 🏕️</h3>
-      <div className="zone-subtitle">Base Camp</div>
-      <p>
-        I'm <strong style={{ color: '#fff' }}>Ameen Harandi</strong> — a CS student at Virginia Tech,
-        full-stack developer and AI enthusiast. Scroll up the mountain to discover my work.
-      </p>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-        {['React', 'TypeScript', 'Python', 'AI', 'Full-Stack'].map(t =>
-          <span key={t} className="tag">{t}</span>
-        )}
-      </div>
-    </ZonePanel>
-  )
-}
-
-function SkillsContent() {
-  return (
-    <ZonePanel>
-      <h3>The Workshop 🛠️</h3>
-      <div className="zone-subtitle">Skills &amp; Technologies</div>
-      {skills.map(g => (
-        <div key={g.cat} style={{ marginBottom: '12px' }}>
-          <div style={{ fontSize: '0.65rem', fontWeight: 700, color: '#c4915e', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' }}>
-            {g.cat}
-          </div>
-          <div className="skill-grid">
-            {g.items.map(s => <div key={s} className="skill-item"><span>{s}</span></div>)}
-          </div>
-        </div>
-      ))}
-    </ZonePanel>
-  )
-}
-
-function ProjectsContent() {
-  return (
-    <ZonePanel>
-      <h3>The Launchpad 🚀</h3>
-      <div className="zone-subtitle">Projects</div>
-      {projects.map(p => (
-        <div key={p.title} style={{ marginBottom: '10px', padding: '10px', borderRadius: '10px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-            <span style={{ fontSize: '1.1rem' }}>{p.emoji}</span>
-            <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#fff' }}>{p.title}</span>
-          </div>
-          <p style={{ fontSize: '0.7rem', lineHeight: 1.5, color: 'rgba(212,200,187,0.6)', margin: '0 0 6px 0' }}>{p.desc}</p>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px' }}>
-            {p.tags.map(t => <span key={t} className="tag">{t}</span>)}
-          </div>
-        </div>
-      ))}
-    </ZonePanel>
-  )
-}
-
-function AwardsContent() {
-  return (
-    <ZonePanel>
-      <h3>Trophy Ridge 🏆</h3>
-      <div className="zone-subtitle">Hackathons &amp; Awards</div>
-      {hackathons.map(h => (
-        <div key={h.name} className="award-card">
-          <div className="award-info">
-            <div className="award-name">{h.name} <span style={{ fontSize: '0.6rem', color: '#b8a899' }}>{h.year}</span></div>
-            <div className="award-project">{h.project}</div>
-          </div>
-          <div className="award-badge">{h.award}</div>
-        </div>
-      ))}
-    </ZonePanel>
-  )
-}
-
-function SummitContent() {
-  return (
-    <ZonePanel>
-      <h3>The Summit 🏔️</h3>
-      <div className="zone-subtitle">You made it to the top!</div>
-      <p>Let's connect — I'm always open to collaborations, internships, and interesting ideas.</p>
-      <a href="https://github.com/ameenh1" target="_blank" rel="noopener noreferrer" className="social-link">
-        <FiGithub /> GitHub
-      </a>
-      <a href="https://www.linkedin.com/in/ameen-harandi-329325240/" target="_blank" rel="noopener noreferrer" className="social-link">
-        <FiLinkedin /> LinkedIn
-      </a>
-      <a href="mailto:ameenh7181@gmail.com" className="social-link">
-        <FiMail /> ameenh7181@gmail.com
-      </a>
-    </ZonePanel>
-  )
-}
+/* (Zone content components moved to ZoneCard.tsx) */
 
 /* ═══════════════════════════════════════
-   ZONE OVERLAYS — HTML panels at 3D positions
+   ZONE OVERLAYS — proximity detection + 3D indicators only
+   (HTML cards rendered by ZoneCard.tsx outside Canvas)
    ═══════════════════════════════════════ */
 function ZoneOverlays() {
-  const scroll = useScroll()
-  const [visibilities, setVisibilities] = useState<boolean[]>(zones.map(() => false))
+  const [surfaceVersion, setSurfaceVersion] = useState(0)
+  const { camera } = useThree()
+  const activeRingRef = useRef<THREE.Mesh | null>(null)
+  const prevZoneRef = useRef<string | null>(null)
+
+  useEffect(() => {
+    return onTerrainSurfaceChange(() => setSurfaceVersion(v => v + 1))
+  }, [])
+
+  const snap = (x: number, z: number, embed = 0.03): [number, number, number] => {
+    const hit = sampleTerrainSurface(x, z)
+    if (!hit) return [x, getTerrainHeight(x, z) - embed, z]
+    return [hit.point.x, hit.point.y - embed, hit.point.z]
+  }
+
+  const signPositions = useMemo(() => {
+    return [0.08, 0.15, 0.35, 0.55, 0.85].map(t => {
+      const p = trailCurve.getPointAt(t)
+      return snap(p.x + 0.5, p.z + 0.5, 0.03)
+    })
+  }, [surfaceVersion])
+
+  const zoneToSignMap = [0, 1, 2, 3, 4]
+
+  const ACTIVATION_RADIUS = 8.0
 
   useFrame(() => {
-    const t = scroll.offset
-    let changed = false
-    const next = zones.map((zone, i) => {
-      const [start, len] = zone.scrollRange
-      const v = t >= start && t < start + len
-      if (v !== visibilities[i]) changed = true
-      return v
+    if (!camera) return
+
+    const camPos = new THREE.Vector3()
+    camera.getWorldPosition(camPos)
+
+    // Find closest zone within radius
+    let closestZone = -1
+    let closestDist = Infinity
+
+    zones.forEach((_, i) => {
+      const signPos = signPositions[zoneToSignMap[i]]
+      const signVector = new THREE.Vector3(signPos[0], signPos[1], signPos[2])
+      const distance = camPos.distanceTo(signVector)
+      if (distance < ACTIVATION_RADIUS && distance < closestDist) {
+        closestDist = distance
+        closestZone = i
+      }
     })
-    if (changed) setVisibilities(next)
+
+    // Publish to store (only fires subscribers when value actually changes)
+    const zoneName = closestZone >= 0 ? zones[closestZone].name : null
+    activeZoneStore.set(zoneName)
+    prevZoneRef.current = zoneName
+
+    // Pulse the active ring indicator
+    if (activeRingRef.current) {
+      const t = performance.now() * 0.001
+      const scale = 1 + Math.sin(t * 3) * 0.15
+      activeRingRef.current.scale.set(scale, scale, 1)
+      const mat = activeRingRef.current.material as THREE.MeshBasicMaterial
+      mat.opacity = 0.15 + Math.sin(t * 4) * 0.08
+    }
   })
 
-  const contentMap: Record<string, React.ReactNode> = {
-    base: <BaseCampContent />,
-    skills: <SkillsContent />,
-    projects: <ProjectsContent />,
-    awards: <AwardsContent />,
-    summit: <SummitContent />,
-  }
+  // Track which zone index is active for the ring indicator
+  const [activeIdx, setActiveIdx] = useState(-1)
+  useEffect(() => {
+    return activeZoneStore.subscribe(name => {
+      setActiveIdx(name ? zones.findIndex(z => z.name === name) : -1)
+    })
+  }, [])
 
   return (
     <>
-      {zones.map((zone, i) => (
-        <group key={zone.name} position={zone.position.toArray()}>
-          <Html
-            center
-            position={[0, -2.5, 0]}
-            distanceFactor={15}
-            style={{ pointerEvents: 'auto' }}
-            occlude={false}
-          >
-            <ZoneVisibility visible={visibilities[i]} content={contentMap[zone.name]} />
-          </Html>
-        </group>
-      ))}
+      {zones.map((zone, i) => {
+        const signPos = signPositions[zoneToSignMap[i]]
+        const isActive = i === activeIdx
+        return (
+          <group key={zone.name} position={signPos}>
+            {/* Glowing orb at sign base */}
+            <mesh>
+              <sphereGeometry args={[0.2, 16, 16]} />
+              <meshStandardMaterial
+                color="#c4915e"
+                emissive="#ffd700"
+                emissiveIntensity={isActive ? 3 : 0.3}
+                toneMapped={false}
+              />
+            </mesh>
+
+            {/* Pulsing ring on active sign */}
+            {isActive && (
+              <mesh
+                ref={activeRingRef}
+                position={[0, 0.05, 0]}
+                rotation={[-Math.PI / 2, 0, 0]}
+              >
+                <ringGeometry args={[0.4, 0.55, 32]} />
+                <meshBasicMaterial
+                  color="#ffd700"
+                  transparent
+                  opacity={0.2}
+                  side={THREE.DoubleSide}
+                />
+              </mesh>
+            )}
+          </group>
+        )
+      })}
     </>
-  )
-}
-
-function ZoneVisibility({ visible, content }: {
-  visible: boolean
-  content: React.ReactNode
-}) {
-  const ref = useRef<HTMLDivElement>(null)
-
-  // This component is now reactive via the 'visible' prop.
-  // We keep the internal ref for potential manual DOM tweaks if needed, 
-  // but CSS will handle the transition.
-
-  return (
-    <div
-      ref={ref}
-      style={{
-        opacity: visible ? 1 : 0,
-        transition: 'all 0.5s ease',
-        pointerEvents: visible ? 'auto' : 'none',
-        transform: visible ? 'translateY(0)' : 'translateY(10px)'
-      }}
-      className="zone-visibility-wrapper"
-    >
-      {content}
-    </div>
   )
 }
 
@@ -460,7 +377,7 @@ function SkyDome() {
         uAuroraColor1: { value: new THREE.Color('#00ffcc') },
         uAuroraColor2: { value: new THREE.Color('#44ff88') },
         uAuroraColor3: { value: new THREE.Color('#aa44ff') },
-        uAuroraOpacity: { value: 0.55 },
+        uAuroraOpacity: { value: 0 },
         uAuroraSpeed: { value: 0.12 },
         uCloudColor: { value: new THREE.Color('#ffffff') },
         uCloudOpacity: { value: 0.28 },
@@ -609,11 +526,11 @@ function TrailProps() {
 
   const campfirePos = useMemo(() => {
     const p = trailCurve.getPointAt(0.02)
-    return snap(p.x + 1.5, p.z, 0.02)
+    return snap(p.x + 1.5, p.z, 0.25)
   }, [surfaceVersion])
 
   const signPositions = useMemo(() => {
-    return [0.15, 0.35, 0.55, 0.75].map(t => {
+    return [0.08, 0.15, 0.35, 0.55, 0.85].map(t => {
       const p = trailCurve.getPointAt(t)
       return snap(p.x + 0.5, p.z + 0.5, 0.03)
     })
@@ -629,7 +546,7 @@ function TrailProps() {
   const crystalPositions = useMemo(() => {
     return [0.18, 0.4, 0.6, 0.8, 0.95].map((t, i) => {
       const p = trailCurve.getPointAt(t)
-      const [x, y, z] = snap(p.x - 0.5, p.z - 0.5, -1.4)
+      const [x, y, z] = snap(p.x - 0.5, p.z - 0.5, 2.1)
       return { pos: [x, y, z] as [number, number, number], color: CRYSTAL_COLORS[i] }
     })
   }, [surfaceVersion])
@@ -694,13 +611,13 @@ function ScrollHint() {
    ═══════════════════════════════════════ */
 function BaseCampTitle() {
   const pos = useMemo(() => {
-    const p = trailCurve.getPointAt(0.0)
-    return [p.x, p.y + 4, p.z] as [number, number, number]
+    const p = trailCurve.getPointAt(0.01)
+    return [p.x, p.y + 0.8, p.z] as [number, number, number]
   }, [])
 
   return (
     <group position={pos}>
-      <Html center distanceFactor={10} style={{ pointerEvents: 'none' }}>
+      <Html center distanceFactor={6} style={{ pointerEvents: 'none' }}>
         <div style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
           <div style={{
             fontFamily: 'Outfit, sans-serif',
@@ -756,6 +673,202 @@ function SummitFlag() {
 /* ═══════════════════════════════════════
    ENVIRONMENT
    ═══════════════════════════════════════ */
+
+/* ═══════════════════════════════════════
+   PLANETS
+   ═══════════════════════════════════════ */
+interface PlanetProps {
+  position: [number, number, number]
+  size: number
+  color: string
+  hasRing?: boolean
+  ringColor?: string
+  ringInner?: number
+  ringOuter?: number
+  hasGlow?: boolean
+  flatShading?: boolean
+  rotationSpeed?: number
+  emissiveIntensity?: number
+}
+
+function Planet({ 
+  position, size, color, hasRing, ringColor = '#c4a882', ringInner = 1.5, ringOuter = 2.2,
+  hasGlow, flatShading, rotationSpeed = 0.1, emissiveIntensity = 0 
+}: PlanetProps) {
+  const meshRef = useRef<THREE.Mesh>(null)
+  const ringRef = useRef<THREE.Mesh>(null)
+
+  useFrame((_, delta) => {
+    if (meshRef.current) {
+      meshRef.current.rotation.y += delta * rotationSpeed
+    }
+    if (ringRef.current) {
+      ringRef.current.rotation.x += delta * rotationSpeed * 0.3
+    }
+  })
+
+  return (
+    <group position={position}>
+      <mesh ref={meshRef}>
+        <icosahedronGeometry args={[size, flatShading ? 1 : 3]} />
+        <meshStandardMaterial 
+          color={color} 
+          emissive={hasGlow ? color : '#000000'} 
+          emissiveIntensity={emissiveIntensity}
+          flatShading={flatShading}
+        />
+      </mesh>
+      {hasRing && (
+        <mesh ref={ringRef} rotation={[Math.PI / 2.5, 0, 0]}>
+          <ringGeometry args={[size * ringInner, size * ringOuter, 32]} />
+          <meshStandardMaterial 
+            color={ringColor} 
+            side={THREE.DoubleSide} 
+            transparent 
+            opacity={0.7}
+          />
+        </mesh>
+      )}
+    </group>
+  )
+}
+
+/* ═══════════════════════════════════════
+   ASTEROID BELTS
+   ═══════════════════════════════════════ */
+function generateAsteroidMatrices(
+  center: [number, number, number],
+  radius: number,
+  width: number,
+  count: number,
+  minSize: number,
+  maxSize: number
+): THREE.Matrix4[] {
+  const temp = new THREE.Matrix4()
+  const matrices: THREE.Matrix4[] = []
+
+  for (let i = 0; i < count; i++) {
+    const angle = Math.random() * Math.PI * 2
+    const r = radius + (Math.random() - 0.5) * width
+    const x = center[0] + Math.cos(angle) * r
+    const y = center[1] + (Math.random() - 0.5) * 3
+    const z = center[2] + Math.sin(angle) * r
+    const scale = minSize + Math.random() * (maxSize - minSize)
+
+    temp.makeRotationFromEuler(new THREE.Euler(
+      Math.random() * Math.PI,
+      Math.random() * Math.PI,
+      Math.random() * Math.PI
+    ))
+    temp.scale(new THREE.Vector3(scale, scale, scale))
+    temp.setPosition(x, y, z)
+    matrices.push(temp.clone())
+  }
+  return matrices
+}
+
+interface AsteroidBeltProps {
+  center: [number, number, number]
+  radius: number
+  width: number
+  count: number
+  minSize: number
+  maxSize: number
+  color: string
+}
+
+function AsteroidBelt({ center, radius, width, count, minSize, maxSize, color }: AsteroidBeltProps) {
+  const meshRef = useRef<THREE.InstancedMesh>(null)
+
+  const matrices = useMemo(() => 
+    generateAsteroidMatrices(center, radius, width, count, minSize, maxSize),
+    [center, radius, width, count, minSize, maxSize]
+  )
+
+  useEffect(() => {
+    if (meshRef.current) {
+      matrices.forEach((matrix, i) => {
+        meshRef.current!.setMatrixAt(i, matrix)
+      })
+      meshRef.current.instanceMatrix.needsUpdate = true
+    }
+  }, [matrices])
+
+  const geometry = useMemo(() => new THREE.DodecahedronGeometry(1, 0), [])
+  const material = useMemo(() => new THREE.MeshStandardMaterial({ 
+    color, 
+    flatShading: true,
+    roughness: 0.9 
+  }), [color])
+
+  return <instancedMesh ref={meshRef} args={[geometry, material, count]} />
+}
+
+/* ═══════════════════════════════════════
+   METEORS
+   ═══════════════════════════════════════ */
+function Meteor() {
+  const meteorRef = useRef<THREE.Mesh>(null)
+  const trailRef = useRef<THREE.Mesh>(null)
+  const [active, setActive] = useState(false)
+  const [startPos, setStartPos] = useState<THREE.Vector3>(new THREE.Vector3())
+  const speedRef = useRef(0)
+
+  useFrame((_, delta) => {
+    if (!active || !meteorRef.current) return
+
+    const dir = new THREE.Vector3(-1, -0.8, 0.3).normalize()
+    meteorRef.current.position.add(dir.multiplyScalar(speedRef.current * delta))
+    speedRef.current += delta * 15
+
+    if (trailRef.current) {
+      trailRef.current.position.copy(meteorRef.current.position)
+    }
+
+    if (meteorRef.current.position.y < -50 || meteorRef.current.position.length() > 250) {
+      setActive(false)
+    }
+  })
+
+  useEffect(() => {
+    const spawn = () => {
+      const theta = Math.random() * Math.PI * 2
+      const phi = Math.random() * Math.PI * 0.4 + 0.1
+      const r = 120 + Math.random() * 60
+      
+      const x = r * Math.sin(phi) * Math.cos(theta)
+      const y = r * Math.cos(phi) + 40
+      const z = r * Math.sin(phi) * Math.sin(theta)
+      
+      setStartPos(new THREE.Vector3(x, y, z))
+      setActive(true)
+      speedRef.current = 30
+
+      const nextSpawn = 2000 + Math.random() * 2000
+      setTimeout(spawn, nextSpawn)
+    }
+
+    const initialDelay = setTimeout(spawn, 1000 + Math.random() * 3000)
+    return () => clearTimeout(initialDelay)
+  }, [])
+
+  if (!active) return null
+
+  return (
+    <>
+      <mesh ref={meteorRef} position={startPos.toArray()}>
+        <sphereGeometry args={[0.3, 8, 8]} />
+        <meshBasicMaterial color="#ffffff" />
+      </mesh>
+      <mesh ref={trailRef} position={startPos.toArray()}>
+        <sphereGeometry args={[0.15, 6, 6]} />
+        <meshBasicMaterial color="#88ccff" transparent opacity={0.6} />
+      </mesh>
+      <pointLight position={startPos.toArray()} color="#aaddff" intensity={2} distance={15} />
+    </>
+  )
+}
+
 function Environment() {
   const softShadow = useMemo(() => createSoftShadowTexture(256), [])
 
@@ -769,7 +882,8 @@ function Environment() {
         shadow-camera-top={30} shadow-camera-bottom={-30}
       />
       <directionalLight position={[-18, 20, -12]} intensity={1.1} color="#b0c8e4" />
-      <Stars radius={120} depth={80} count={1500} factor={4} saturation={0.2} fade speed={0.3} />
+      <Stars radius={150} depth={100} count={5000} factor={6} saturation={0.1} fade speed={0.5} />
+      <Stars radius={100} depth={50} count={2000} factor={3} saturation={0.3} fade speed={0.8} />
       {zones.map((zone, i) => (
         <mesh key={`shadow-${zone.name}-${i}`} rotation={[-Math.PI / 2, 0, 0]} position={[zone.position.x, zone.position.y + 0.03, zone.position.z]}>
           <planeGeometry args={[3.1, 3.1]} />
@@ -799,6 +913,26 @@ export default function Scene() {
       <ZoneOverlays />
       <ProgressBar />
       <ScrollHint />
+
+      {/* Planets */}
+      <Planet position={[120, 55, -80]} size={8} color="#d4a574" hasRing ringColor="#c4a882" ringInner={1.4} ringOuter={2.4} rotationSpeed={0.15} />
+      <Planet position={[-110, 70, 90]} size={12} color="#8b6b4a" rotationSpeed={0.08} />
+      <Planet position={[90, 45, 130]} size={5} color="#a8684a" flatShading rotationSpeed={0.2} />
+      <Planet position={[-90, 40, -70]} size={6} color="#5599cc" hasGlow emissiveIntensity={0.4} rotationSpeed={0.12} />
+      <Planet position={[70, 50, -110]} size={4} color="#cc5544" flatShading rotationSpeed={0.18} />
+      <Planet position={[-70, 60, 85]} size={5} color="#3388aa" rotationSpeed={0.1} />
+      <Planet position={[100, 35, 60]} size={2.5} color="#888888" flatShading rotationSpeed={0.25} />
+
+      {/* Asteroid Belts - diagonal to cut through the scene */}
+      <group rotation={[0.3, 0.8, 0.2]}>
+        <AsteroidBelt center={[0, 20, 0]} radius={95} width={8} count={300} minSize={0.3} maxSize={1.2} color="#6a5a4a" />
+      </group>
+      <group rotation={[-0.4, 0.5, 0.3]}>
+        <AsteroidBelt center={[0, 30, 0]} radius={135} width={12} count={250} minSize={0.4} maxSize={1.5} color="#5a4a3a" />
+      </group>
+
+      {/* Meteors */}
+      <Meteor />
     </>
   )
 }

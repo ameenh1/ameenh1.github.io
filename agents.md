@@ -2,6 +2,128 @@
 
 This document outlines the available agent skills installed in this project and how to utilize them effectively.
 
+---
+
+## Codebase Navigation Guide
+
+This section provides AI agents with the essential information needed to navigate and work with this codebase effectively.
+
+### Project Overview
+
+- **Project Name**: Portfolio - 3D Interactive Resume/Portfolio Website
+- **Tech Stack**: React, TypeScript, Three.js, @react-three/fiber, @react-three/drei, Vite
+- **Purpose**: Interactive 3D portfolio showcasing skills, projects, and achievements in a mountain climbing theme
+
+### Directory Structure
+
+```
+src/
+├── components/
+│   ├── Experience.tsx    # Main 3D canvas setup with ScrollControls
+│   ├── Scene.tsx         # 3D scene composition, camera rig, zone overlays
+│   ├── Mountain.tsx       # Terrain mesh generation, 3D objects (signs, lanterns, etc.)
+│   └── LoadingScreen.tsx # Initial loading overlay
+├── utils/
+│   ├── terrainSnap.ts    # Raycasting for terrain height sampling
+│   └── toyTextures.ts    # Procedural texture generation
+├── App.tsx               # Root component
+├── main.tsx              # Entry point
+└── index.css             # Global styles (Tailwind + custom)
+
+.agents/skills/           # AI agent skills for specialized tasks
+```
+
+### Key Files and Their Purposes
+
+| File | Purpose |
+|------|---------|
+| `src/components/Experience.tsx` | Main 3D canvas, camera setup, ScrollControls, post-processing |
+| `src/components/Scene.tsx` | Complete 3D scene: camera rig, mountain, trail, signs, zone overlays, lighting |
+| `src/components/Mountain.tsx` | Procedural terrain mesh, 3D props (signposts, lanterns, campfire, crystals) |
+| `src/components/LoadingScreen.tsx` | Animated loading screen with progress bar |
+| `src/utils/terrainSnap.ts` | Raycasting utilities to sample terrain height at any (x, z) position |
+| `src/utils/toyTextures.ts` | Procedural matcap and shadow texture generation |
+| `src/index.css` | Tailwind + custom CSS for zone panels, loading screen, progress bar |
+
+### How to Run the Project
+
+```bash
+# Development
+npm run dev
+
+# Build
+npm run build
+
+# Lint
+npm run lint
+```
+
+### Key Dependencies
+
+- `react` / `react-dom` - UI framework
+- `three` - 3D graphics library
+- `@react-three/fiber` - React renderer for Three.js
+- `@react-three/drei` - Useful helpers (ScrollControls, Html, Float, Stars, etc.)
+- `tailwindcss` - CSS framework (configured via @tailwindcss/vite)
+- `typescript` - Type safety
+
+### Important Conventions
+
+#### 3D Coordinate System
+- Y-axis is up (vertical)
+- X and Z form the horizontal plane
+- Trail runs along the terrain surface following a spline curve
+
+#### Scroll-Based Navigation
+- Uses `@react-three/drei` `ScrollControls` with `pages={6}`
+- `useScroll()` hook provides `scroll.offset` (0 to 1)
+- Camera follows character position based on scroll progress
+
+#### Zone System
+- 5 zones along the trail: base, skills, projects, awards, summit
+- Each zone has:
+  - Position on trail (via `trailCurve.getPointAt(t)`)
+  - Scroll range for activation
+  - Content component (React HTML)
+
+#### Proximity-Based Activation (Current)
+- Zone visibility determined by camera distance to sign positions
+- Activation radius: 3.0 units from sign
+- Uses `useThree().camera.getWorldPosition()` to get camera position
+- Information displays in fixed CSS position (left side of screen)
+
+#### HTML Overlays
+- Use `@react-three/drei` `Html` component to render DOM elements in 3D scene
+- For fixed positioning: use CSS `position: fixed` class instead of 3D coordinates
+- Use `transform` on inner div for animation transitions
+
+#### Terrain System
+- `generateTrailCurve()` - Creates CatmullRom spline along terrain
+- `getTerrainHeight(x, z)` - Gets terrain Y at given x, z
+- `sampleTerrainSurface(x, z)` - Raycasts to find exact intersection with terrain mesh
+
+### Common Tasks
+
+#### Adding a New Zone
+1. Add entry to `zones` array in Scene.tsx with name, trail position, scroll range
+2. Create content component (e.g., `BaseCampContent`)
+3. Add to `contentMap` object in ZoneOverlays
+
+#### Modifying 3D Objects
+- Props are in `Mountain.tsx` (Signpost, Lantern, Campfire, Crystal, Hiker)
+- Import and use in Scene.tsx `TrailProps` component
+
+#### Changing Activation Behavior
+- Proximity activation in ZoneOverlays `useFrame` hook
+- Modify `ACTIVATION_RADIUS` constant (currently 3.0)
+- Can switch back to scroll-based by using `scroll.offset` instead of camera distance
+
+#### Styling Zone Panels
+- Edit `src/index.css` - `.zone-panel` class
+- Fixed display uses `.fixed-display` class
+
+---
+
 ## Available Skills
 
 ### 1. Vercel React Best Practices
@@ -89,4 +211,4 @@ Additional skills can be installed using the `find-skills` skill when needed. To
 
 ---
 
-*Last Updated: March 14, 2026*
+*Last Updated: March 16, 2026*

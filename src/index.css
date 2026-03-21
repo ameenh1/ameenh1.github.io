@@ -87,27 +87,32 @@ h1, h2, h3, h4, h5, h6 {
   border-radius: 16px;
   padding: 24px;
   color: #e8dfd6;
-  max-width: 340px;
+  max-width: 500px;
   width: 100%;
-  transform: translateY(10px);
-  opacity: 0;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-origin: center bottom;
 }
-.zone-panel.visible {
-  transform: translateY(0);
-  opacity: 1;
+
+/* ── Fixed left-side display ── */
+.fixed-display {
+  position: fixed;
+  left: 20px;
+  top: 20px;
+  width: 380px;
+  max-width: 40vw;
+  pointer-events: auto;
+  z-index: 100;
 }
 
 .zone-panel h3 {
   font-family: var(--font-display);
-  font-size: 1.25rem;
+  font-size: 1.8rem;
   font-weight: 700;
   color: #fff;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
 }
 
 .zone-panel .zone-subtitle {
-  font-size: 0.75rem;
+  font-size: 1.1rem;
   color: var(--color-accent);
   font-weight: 600;
   text-transform: uppercase;
@@ -116,8 +121,8 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .zone-panel p {
-  font-size: 0.8rem;
-  line-height: 1.6;
+  font-size: 1rem;
+  line-height: 1.7;
   color: rgba(212, 200, 187, 0.7);
   margin-bottom: 16px;
 }
@@ -208,8 +213,8 @@ h1, h2, h3, h4, h5, h6 {
 /* ── Skill items in zone panel ── */
 .skill-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 6px;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 4px;
 }
 .skill-item {
   display: flex;

@@ -680,11 +680,11 @@ export default function Mountain() {
     }).filter(Boolean) as Array<{ pos: [number, number, number]; scale: number }>, [surfaceVersion])
 
   const flowers = useMemo(() =>
-    Array.from({ length: 42 }, () => {
+    Array.from({ length: 150 }, () => {
       const a = Math.random() * Math.PI * 2, r = 5 + Math.random() * 24
       const x = Math.cos(a) * r
       const z = Math.sin(a) * r
-      const p = snapPoint(x, z, 0.01)
+      const p = snapPoint(x, z, 0.4)
       const y = p.y
       return y < TERRAIN_PEAK_HEIGHT * 0.58 && y > 0.5 && p.normalY >= 0.58
         ? [p.x, y, p.z] as [number, number, number]
@@ -706,11 +706,11 @@ export default function Mountain() {
     }).filter(Boolean) as Array<{ pos: [number, number, number]; scale: number; rot: [number, number, number] }>, [surfaceVersion])
 
   const grass = useMemo(() =>
-    Array.from({ length: 180 }, () => {
+    Array.from({ length: 500 }, () => {
       const a = Math.random() * Math.PI * 2, r = 5 + Math.random() * 25
       const x = Math.cos(a) * r
       const z = Math.sin(a) * r
-      const p = snapPoint(x, z, 0.02)
+      const p = snapPoint(x, z, 0.3)
       const y = p.y
       return y < TERRAIN_PEAK_HEIGHT * 0.6 && y > 0.3 && p.normalY >= 0.56
         ? [p.x, y, p.z] as [number, number, number]
