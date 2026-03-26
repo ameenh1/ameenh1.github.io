@@ -21,17 +21,18 @@ import { activeZoneStore } from '../utils/activeZoneStore'
 const trailCurve = generateTrailCurve()
 
 /* ═══════════════════════════════════════
-   ZONE POSITIONS — on the trail
+   ZONE & SIGN POSITIONS — on the trail
    ═══════════════════════════════════════ */
-const zoneTs = [0.03, 0.2, 0.42, 0.62, 0.95]
-const zonePositions = zoneTs.map(t => trailCurve.getPointAt(t))
+const ZONE_TS = [0.03, 0.2, 0.42, 0.62, 0.95] as const
+const SIGN_TRAIL_TS = [0.08, 0.15, 0.35, 0.55, 0.85] as const
+const zonePositions = ZONE_TS.map(t => trailCurve.getPointAt(t))
 
 const zones = [
-  { name: 'base',     position: zonePositions[0], scrollRange: [0, 0.16] as [number, number] },
-  { name: 'skills',   position: zonePositions[1], scrollRange: [0.16, 0.20] as [number, number] },
-  { name: 'projects', position: zonePositions[2], scrollRange: [0.36, 0.20] as [number, number] },
-  { name: 'awards',   position: zonePositions[3], scrollRange: [0.56, 0.20] as [number, number] },
-  { name: 'summit',   position: zonePositions[4], scrollRange: [0.82, 0.18] as [number, number] },
+  { name: 'base',     position: zonePositions[0], signT: SIGN_TRAIL_TS[0] },
+  { name: 'skills',   position: zonePositions[1], signT: SIGN_TRAIL_TS[1] },
+  { name: 'projects', position: zonePositions[2], signT: SIGN_TRAIL_TS[2] },
+  { name: 'awards',   position: zonePositions[3], signT: SIGN_TRAIL_TS[3] },
+  { name: 'summit',   position: zonePositions[4], signT: SIGN_TRAIL_TS[4] },
 ]
 
 /* ═══════════════════════════════════════
@@ -42,6 +43,7 @@ function CameraRig() {
   const currentPos = useMemo(() => new THREE.Vector3(), [])
   const currentLookAt = useMemo(() => new THREE.Vector3(), [])
   const smoothedScroll = useRef(0)
+  const isFirstFrame = useRef(true)
   const tempTangent = useMemo(() => new THREE.Vector3(), [])
   const cameraOffset = useMemo(() => new THREE.Vector3(), [])
     const outward = useMemo(() => new THREE.Vector3(), [])
@@ -79,9 +81,16 @@ function CameraRig() {
     tempLookTangent.copy(tempTangent).multiplyScalar(3)
     targetLookAt.copy(charPos).add(tempLookTangent).add(lookAtUpOffset)
 
-    // Smooth follow
-    currentPos.lerp(targetCamPos, 1 - Math.exp(-delta * 4))
-    currentLookAt.lerp(targetLookAt, 1 - Math.exp(-delta * 6.5))
+    // On first frame, snap camera directly to base position
+    if (isFirstFrame.current) {
+      currentPos.copy(targetCamPos)
+      currentLookAt.copy(targetLookAt)
+      isFirstFrame.current = false
+    } else {
+      // Smooth follow
+      currentPos.lerp(targetCamPos, 1 - Math.exp(-delta * 4))
+      currentLookAt.lerp(targetLookAt, 1 - Math.exp(-delta * 6.5))
+    }
 
     camera.position.copy(currentPos)
     camera.lookAt(currentLookAt)
@@ -138,8 +147,8 @@ function HikerOnTrail() {
 function ZoneOverlays() {
   const [surfaceVersion, setSurfaceVersion] = useState(0)
   const { camera } = useThree()
+  const scroll = useScroll()
   const activeRingRef = useRef<THREE.Mesh | null>(null)
-  const prevZoneRef = useRef<string | null>(null)
 
   useEffect(() => {
     return onTerrainSurfaceChange(() => setSurfaceVersion(v => v + 1))
@@ -152,40 +161,51 @@ function ZoneOverlays() {
   }
 
   const signPositions = useMemo(() => {
-    return [0.08, 0.15, 0.35, 0.55, 0.85].map(t => {
+    return SIGN_TRAIL_TS.map(t => {
       const p = trailCurve.getPointAt(t)
       return snap(p.x + 0.5, p.z + 0.5, 0.03)
     })
   }, [surfaceVersion])
 
-  const zoneToSignMap = [0, 1, 2, 3, 4]
-
+  const ACTIVATION_SCROLL_THRESHOLD = 0.07
   const ACTIVATION_RADIUS = 8.0
+
+  const camPos = useMemo(() => new THREE.Vector3(), [])
+  const signVector = useMemo(() => new THREE.Vector3(), [])
 
   useFrame(() => {
     if (!camera) return
 
-    const camPos = new THREE.Vector3()
-    camera.getWorldPosition(camPos)
+    const hikerT = scroll.offset
+    let bestZone: string | null = null
+    let bestScrollDist = Infinity
 
-    // Find closest zone within radius
-    let closestZone = -1
-    let closestDist = Infinity
-
-    zones.forEach((_, i) => {
-      const signPos = signPositions[zoneToSignMap[i]]
-      const signVector = new THREE.Vector3(signPos[0], signPos[1], signPos[2])
-      const distance = camPos.distanceTo(signVector)
-      if (distance < ACTIVATION_RADIUS && distance < closestDist) {
-        closestDist = distance
-        closestZone = i
+    // Primary: scroll-based — activate when hiker is near a sign trail position
+    for (let i = 0; i < zones.length; i++) {
+      const scrollDist = Math.abs(hikerT - zones[i].signT)
+      if (scrollDist < ACTIVATION_SCROLL_THRESHOLD && scrollDist < bestScrollDist) {
+        bestScrollDist = scrollDist
+        bestZone = zones[i].name
       }
-    })
+    }
 
-    // Publish to store (only fires subscribers when value actually changes)
-    const zoneName = closestZone >= 0 ? zones[closestZone].name : null
-    activeZoneStore.set(zoneName)
-    prevZoneRef.current = zoneName
+    // Fallback: camera distance — catches jumps / non-scroll navigation
+    if (!bestZone) {
+      camera.getWorldPosition(camPos)
+      let closestDist = Infinity
+
+      for (let i = 0; i < zones.length; i++) {
+        const signPos = signPositions[i]
+        signVector.set(signPos[0], signPos[1], signPos[2])
+        const distance = camPos.distanceTo(signVector)
+        if (distance < ACTIVATION_RADIUS && distance < closestDist) {
+          closestDist = distance
+          bestZone = zones[i].name
+        }
+      }
+    }
+
+    activeZoneStore.set(bestZone)
 
     // Pulse the active ring indicator
     if (activeRingRef.current) {
@@ -208,7 +228,7 @@ function ZoneOverlays() {
   return (
     <>
       {zones.map((zone, i) => {
-        const signPos = signPositions[zoneToSignMap[i]]
+        const signPos = signPositions[i]
         const isActive = i === activeIdx
         return (
           <group key={zone.name} position={signPos}>
@@ -611,13 +631,13 @@ function ScrollHint() {
    ═══════════════════════════════════════ */
 function BaseCampTitle() {
   const pos = useMemo(() => {
-    const p = trailCurve.getPointAt(0.01)
-    return [p.x, p.y + 0.8, p.z] as [number, number, number]
+    const p = trailCurve.getPointAt(0.05)
+    return [p.x, p.y + 3, p.z] as [number, number, number]
   }, [])
 
   return (
     <group position={pos}>
-      <Html center distanceFactor={6} style={{ pointerEvents: 'none' }}>
+      <Html center distanceFactor={8} style={{ pointerEvents: 'none' }}>
         <div style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
           <div style={{
             fontFamily: 'Outfit, sans-serif',

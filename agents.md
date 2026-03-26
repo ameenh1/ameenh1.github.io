@@ -1,214 +1,105 @@
-# Agent Skills Documentation
+# AGENTS.md — Coding Agent Guide
 
-This document outlines the available agent skills installed in this project and how to utilize them effectively.
+## Build / Lint / Test Commands
 
----
+```bash
+npm run dev       # Start Vite dev server (http://localhost:5173)
+npm run build     # Type-check (tsc -b) + Vite production build
+npm run lint      # ESLint on all .ts/.tsx files
+npm run preview   # Serve the production build locally
+```
 
-## Codebase Navigation Guide
+**No test framework is configured.** No test files or test runner (vitest, jest) exist. To add tests, install vitest and add `"test": "vitest"` to package.json scripts.
 
-This section provides AI agents with the essential information needed to navigate and work with this codebase effectively.
-
-### Project Overview
-
-- **Project Name**: Portfolio - 3D Interactive Resume/Portfolio Website
-- **Tech Stack**: React, TypeScript, Three.js, @react-three/fiber, @react-three/drei, Vite
-- **Purpose**: Interactive 3D portfolio showcasing skills, projects, and achievements in a mountain climbing theme
-
-### Directory Structure
+## Project Structure
 
 ```
 src/
 ├── components/
-│   ├── Experience.tsx    # Main 3D canvas setup with ScrollControls
-│   ├── Scene.tsx         # 3D scene composition, camera rig, zone overlays
-│   ├── Mountain.tsx       # Terrain mesh generation, 3D objects (signs, lanterns, etc.)
-│   └── LoadingScreen.tsx # Initial loading overlay
+│   ├── Experience.tsx    # R3F Canvas, ScrollControls, post-processing
+│   ├── Scene.tsx         # Camera rig, hiker, zone overlays, trail, environment
+│   ├── Mountain.tsx      # Procedural terrain mesh, 3D props (signposts, lanterns, etc.)
+│   ├── ZoneCard.tsx      # DOM overlay panels (outside Canvas)
+│   └── LoadingScreen.tsx # Loading overlay with progress bar
 ├── utils/
-│   ├── terrainSnap.ts    # Raycasting for terrain height sampling
-│   └── toyTextures.ts    # Procedural texture generation
+│   ├── terrainSnap.ts    # Raycasting to sample terrain height
+│   ├── toyTextures.ts    # Procedural matcap/shadow texture generation
+│   └── activeZoneStore.ts # Minimal pub/sub store for active zone name
 ├── App.tsx               # Root component
 ├── main.tsx              # Entry point
-└── index.css             # Global styles (Tailwind + custom)
-
-.agents/skills/           # AI agent skills for specialized tasks
+└── index.css             # Tailwind v4 + custom CSS
 ```
 
-### Key Files and Their Purposes
+## Code Style Guidelines
 
-| File | Purpose |
-|------|---------|
-| `src/components/Experience.tsx` | Main 3D canvas, camera setup, ScrollControls, post-processing |
-| `src/components/Scene.tsx` | Complete 3D scene: camera rig, mountain, trail, signs, zone overlays, lighting |
-| `src/components/Mountain.tsx` | Procedural terrain mesh, 3D props (signposts, lanterns, campfire, crystals) |
-| `src/components/LoadingScreen.tsx` | Animated loading screen with progress bar |
-| `src/utils/terrainSnap.ts` | Raycasting utilities to sample terrain height at any (x, z) position |
-| `src/utils/toyTextures.ts` | Procedural matcap and shadow texture generation |
-| `src/index.css` | Tailwind + custom CSS for zone panels, loading screen, progress bar |
+### TypeScript
+- **Strict mode** enabled with all flags: `noUnusedLocals`, `noUnusedParameters`, `noFallthroughCasesInSwitch`.
+- Use `interface` for component props, not `type` aliases.
+- `verbatimModuleSyntax` enforced — use `import type` for type-only imports.
+- `erasableSyntaxOnly` — no enums or parameter properties; use `const` objects instead.
+- Avoid `any`. Use proper types or `unknown`.
 
-### How to Run the Project
+### Imports
+- React: `import { useState, useEffect, useMemo, useRef, useCallback } from 'react'`
+- Three.js: `import * as THREE from 'three'` (always namespace import)
+- R3F: `import { Canvas, useFrame, useThree } from '@react-three/fiber'`
+- Drei: `import { ScrollControls, Float, Html, Stars, useScroll } from '@react-three/drei'`
+- Relative imports for local modules: `'./Scene'`, `'../utils/terrainSnap'`
 
-```bash
-# Development
-npm run dev
+### Components & Naming
+- Functional components only. Default export for the primary component per file.
+- **Components**: PascalCase (`CameraRig`, `ZoneOverlays`)
+- **Functions/variables**: camelCase (`getTerrainHeight`, `trailCurve`)
+- **Constants**: UPPER_SNAKE_CASE (`TERRAIN_SIZE`, `ACTIVATION_RADIUS`, `CRYSTAL_COLORS`)
+- **Props interfaces**: `Props` (or `PlanetProps` when multiple exist in file)
+- **CSS classes**: kebab-case (`zone-panel`, `loading-screen`, `skill-grid`)
+- Section headers: `/* ════════════════════ SECTION NAME ════════════════════ */`
 
-# Build
-npm run build
+### Three.js / R3F Patterns
+- **Memoize expensive objects**: `useMemo` for geometries, materials, vectors — never create in `useFrame`.
+- **Ref for per-frame state**: `useRef` for smoothed values, positions.
+- **Cleanup**: Always dispose Three.js resources in `useEffect` return.
+- **useFrame**: Keep callbacks lightweight. Avoid React state updates — use pub/sub store (`activeZoneStore.ts`).
+- **Terrain snapping**: `sampleTerrainSurface(x, z)` for precise Y; fallback to `getTerrainHeight(x, z)`.
+- **InstancedMesh** for many identical objects (see `AsteroidBelt`).
+- Smooth with delta-based easing: `1 - Math.exp(-delta * speed)`.
 
-# Lint
-npm run lint
-```
+### CSS / Styling
+- Tailwind CSS v4 via `@tailwindcss/vite`. Import: `@import "tailwindcss"` in `index.css`.
+- Theme tokens in `@theme { ... }` block (CSS custom properties).
+- Fonts: `Outfit` (display), `Inter` (body).
+- Palette: darks (`#0a0a0c`–`#2f2f36`), warm accent (`#c4915e`), gold (`#ffd700`).
 
-### Key Dependencies
+### Error Handling
+- Null-check raycasting: `if (!hit) return fallback`
+- Guard refs: `if (!groupRef.current) return`
+- Early returns for missing deps: `if (!terrainObject) return null`
 
-- `react` / `react-dom` - UI framework
-- `three` - 3D graphics library
-- `@react-three/fiber` - React renderer for Three.js
-- `@react-three/drei` - Useful helpers (ScrollControls, Html, Float, Stars, etc.)
-- `tailwindcss` - CSS framework (configured via @tailwindcss/vite)
-- `typescript` - Type safety
+## Key Dependencies
 
-### Important Conventions
+| Package | Purpose |
+|---------|---------|
+| `react` 19, `react-dom` 19 | UI framework |
+| `three` 0.183 | 3D engine |
+| `@react-three/fiber` 9 | React renderer for Three.js |
+| `@react-three/drei` 10 | Helpers (ScrollControls, Html, Float, Stars) |
+| `tailwindcss` 4 | CSS framework (via @tailwindcss/vite) |
+| `framer-motion` 12 | DOM animations |
+| `vite` 8 | Build tool |
+| `typescript` 5.9 | Type checker |
 
-#### 3D Coordinate System
-- Y-axis is up (vertical)
-- X and Z form the horizontal plane
-- Trail runs along the terrain surface following a spline curve
+## 3D Coordinate System
+- **Y-up**. XZ is the horizontal plane.
+- Trail follows a `CatmullRomCurve3` spline along terrain surface.
+- Scroll progress (`scroll.offset` 0→1) drives camera, hiker, and zone activation.
+- Zone proximity: camera distance to sign positions (activation radius: 8.0 units).
+- Canvas `dpr` capped at `[1, 1.5]` for mobile performance.
 
-#### Scroll-Based Navigation
-- Uses `@react-three/drei` `ScrollControls` with `pages={6}`
-- `useScroll()` hook provides `scroll.offset` (0 to 1)
-- Camera follows character position based on scroll progress
+## Available Agent Skills
 
-#### Zone System
-- 5 zones along the trail: base, skills, projects, awards, summit
-- Each zone has:
-  - Position on trail (via `trailCurve.getPointAt(t)`)
-  - Scroll range for activation
-  - Content component (React HTML)
+Skills live in `.agents/skills/`. Load them with the `skill` tool:
 
-#### Proximity-Based Activation (Current)
-- Zone visibility determined by camera distance to sign positions
-- Activation radius: 3.0 units from sign
-- Uses `useThree().camera.getWorldPosition()` to get camera position
-- Information displays in fixed CSS position (left side of screen)
-
-#### HTML Overlays
-- Use `@react-three/drei` `Html` component to render DOM elements in 3D scene
-- For fixed positioning: use CSS `position: fixed` class instead of 3D coordinates
-- Use `transform` on inner div for animation transitions
-
-#### Terrain System
-- `generateTrailCurve()` - Creates CatmullRom spline along terrain
-- `getTerrainHeight(x, z)` - Gets terrain Y at given x, z
-- `sampleTerrainSurface(x, z)` - Raycasts to find exact intersection with terrain mesh
-
-### Common Tasks
-
-#### Adding a New Zone
-1. Add entry to `zones` array in Scene.tsx with name, trail position, scroll range
-2. Create content component (e.g., `BaseCampContent`)
-3. Add to `contentMap` object in ZoneOverlays
-
-#### Modifying 3D Objects
-- Props are in `Mountain.tsx` (Signpost, Lantern, Campfire, Crystal, Hiker)
-- Import and use in Scene.tsx `TrailProps` component
-
-#### Changing Activation Behavior
-- Proximity activation in ZoneOverlays `useFrame` hook
-- Modify `ACTIVATION_RADIUS` constant (currently 3.0)
-- Can switch back to scroll-based by using `scroll.offset` instead of camera distance
-
-#### Styling Zone Panels
-- Edit `src/index.css` - `.zone-panel` class
-- Fixed display uses `.fixed-display` class
-
----
-
-## Available Skills
-
-### 1. Vercel React Best Practices
-**Location**: `.agents/skills/vercel-react-best-practices/`
-**Purpose**: Provides React and Next.js performance optimization guidelines from Vercel Engineering.
-**When to Use**: 
-- Writing, reviewing, or refactoring React/Next.js code
-- Optimizing component performance
-- Improving data fetching patterns
-- Reducing bundle size
-- Enhancing user experience through performance improvements
-
-**Key Guidelines**:
-- Use `useMemo` and `useCallback` for expensive computations
-- Implement proper code splitting and lazy loading
-- Optimize images and media assets
-- Leverage server-side rendering and static generation appropriately
-- Minimize JavaScript bundle size
-- Use efficient state management patterns
-
-### 2. Web Design Guidelines
-**Location**: `.agents/skills/web-design-guidelines/`
-**Purpose**: Reviews UI code for Web Interface Guidelines compliance.
-**When to Use**:
-- Checking accessibility compliance (WCAG)
-- Auditing design consistency
-- Reviewing UX patterns
-- Validating responsive design implementations
-- Ensuring cross-browser compatibility
-
-**Key Focus Areas**:
-- Color contrast and readability
-- Keyboard navigation support
-- Screen reader compatibility
-- Touch target sizing
-- Form validation and error handling
-- Loading states and feedback mechanisms
-
-### 3. Three.js Fundamentals
-**Location**: `.agents/skills/threejs-fundamentals/`
-**Purpose**: Provides guidance on Three.js scene setup, cameras, renderer, Object3D hierarchy, and coordinate systems.
-**When to Use**:
-- Setting up 3D scenes
-- Creating and configuring cameras
-- Managing renderers and performance
-- Working with Object3D hierarchies
-- Implementing transformations and animations
-- Adding lighting and materials
-
-**Key Concepts**:
-- Scene graph and object hierarchy
-- Camera types (Perspective, Orthographic)
-- Renderer configuration and optimization
-- Geometry creation and manipulation
-- Material types and shading
-- Lighting techniques (ambient, directional, point, spot)
-- Animation systems and loops
-- Raycasting for object interaction
-
-## How to Use These Skills
-
-When working on specific tasks, you can invoke the relevant skill to get specialized guidance:
-
-1. **For React performance issues**: Use the Vercel React Best Practices skill
-2. **For UI/UX and accessibility concerns**: Use the Web Design Guidelines skill
-3. **For 3D graphics and Three.js implementation**: Use the Three.js Fundamentals skill
-
-The skills provide domain-specific instructions, workflows, and best practices that can be applied directly to your development work.
-
-## Skill Installation
-
-Additional skills can be installed using the `find-skills` skill when needed. To discover and install new skills:
-
-1. Ask for help finding a skill for a specific task
-2. Use the skill discovery mechanism to find relevant skills
-3. Install the skill to make its guidance available
-
-## Best Practices for Skill Usage
-
-1. **Consult Early**: Review relevant skills before starting implementation
-2. **Apply Consistently**: Use skill guidelines throughout development
-3. **Combine Skills**: Multiple skills may be relevant for complex tasks
-4. **Stay Updated**: Skills may be updated with new best practices
-5. **Document Usage**: Note when skill guidance was applied in code comments or documentation
-
----
-
-*Last Updated: March 16, 2026*
+1. **threejs-fundamentals** — Three.js scene setup, cameras, renderer, Object3D hierarchy
+2. **vercel-react-best-practices** — React/Next.js performance optimization
+3. **web-design-guidelines** — Accessibility and UI compliance review
+4. **find-skills** — Discover and install new skills
